@@ -1,18 +1,6 @@
-# Pydantic structured output works with providers that support Pydantic schemas 
-# in their LangChain integration, such as ChatOpenAI, ChatGoogleGenerativeAI, 
-# and ChatDeepSeek. With those, LangChain validates model output and
-# returns a Pydantic model instance.
-
-# For now, use TypedDict with your Hugging Face endpoint, then later repeat
-# the same example with a provider that supports Pydantic. What is the key 
-# difference between accessing a parsed
-
-
-
 from langchain_huggingface import ChatHuggingFace , HuggingFaceEndpoint
 from dotenv import load_dotenv
-from  typing import TypedDict , Annotated , Optional , Literal
-from pydantic import BaseModel , Field
+from  typing import TypedDict , Annotated , Optional
 load_dotenv()
 llm = HuggingFaceEndpoint(
    repo_id="deepseek-ai/DeepSeek-R1-0528",
@@ -33,23 +21,63 @@ model = ChatHuggingFace(llm = llm)
 #     name : Annotated[Optional[str] , "Write the name of the reviewer"]
 
 #with pydantic
-class Review(BaseModel):
-    key_themes : list[str] = Field(description='Write down all the keys themes discussed in the review in the list')
-    summary  :  str =  Field(description='A brief summary of the review')
-    sentiment : Literal['pos', 'neg'] = Field(description='Return sentiment of the review either negative positive or neutral')
-    pros : Optional[list[str]] = Field(default=None, description='Write down all the pros inside the list')
-    cons : Optional[list[str]] = Field(default=None, description='Write down all the cons inside the list')
-    name : Optional[str] = Field(default=None , description='Write the name of the reviewer')
+# class Review(BaseModel):
+#     key_themes : list[str] = Field(description='Write down all the keys themes discussed in the review in the list')
+#     summary  :  str =  Field(description='A brief summary of the review')
+#     sentiment : Literal['pos', 'neg'] = Field(description='Return sentiment of the review either negative positive or neutral')
+#     pros : Optional[list[str]] = Field(default=None, description='Write down all the pros inside the list')
+#     cons : Optional[list[str]] = Field(default=None, description='Write down all the cons inside the list')
+#     name : Optional[str] = Field(default=None , description='Write the name of the reviewer')
 
 
+#with json
 
-# this only work with openai model not with hugging face model
-# structured_model = model.with_structured_output(Review)
+# schema
+json_schema = {
+  "title": "Review",
+  "type": "object",
+  "properties": {
+    "key_themes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Write down all the key themes discussed in the review in a list"
+    },
+    "summary": {
+      "type": "string",
+      "description": "A brief summary of the review"
+    },
+    "sentiment": {
+      "type": "string",
+      "enum": ["pos", "neg"],
+      "description": "Return sentiment of the review either negative, positive or neutral"
+    },
+    "pros": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "string"
+      },
+      "description": "Write down all the pros inside a list"
+    },
+    "cons": {
+      "type": ["array", "null"],
+      "items": {
+        "type": "string"
+      },
+      "description": "Write down all the cons inside a list"
+    },
+    "name": {
+      "type": ["string", "null"],
+      "description": "Write the name of the reviewer"
+    }
+  },
+  "required": ["key_themes", "summary", "sentiment"]
+}
 
-# work with hugging face model
+
 structured_model = model.with_structured_output(
-    Review,
-    include_raw=True
+ json_schema
 )
 
 result = structured_model.invoke("""I recently upgraded to the Samsung Galaxy S24 Ultra, and I must say, it’s an absolute powerhouse! The Snapdragon 8 Gen 3 processor makes everything lightning fast—whether I’m gaming, multitasking, or editing photos. The 5000mAh battery easily lasts a full day even with heavy use, and the 45W fast charging is a lifesaver.
@@ -73,10 +101,4 @@ Review by Akshit tyagi
 # print(result['sentiment'])
 
 # print(result)
-print(result["parsed"])
-# print(result["parsed"]["key_themes"])
-# print(result["parsed"]["summary"])
-# print(result["parsed"]["sentiment"])
-# print(result["parsed"]["pros"])
-# print(result["parsed"]["cons"])
-# print(result["parsed"]["name"])
+print(result)
