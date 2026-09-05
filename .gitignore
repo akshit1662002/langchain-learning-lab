@@ -32,3 +32,7 @@ huggingface/
 
 # Streamlit local configuration secrets
 .streamlit/secrets.toml
+
+
+# Large or copyrighted learning documents
+*.pdf
